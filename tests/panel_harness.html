@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Family Chalkboard panel harness</title>
+    <style>
+      html,
+      body,
+      family-chalkboard-panel {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <family-chalkboard-panel></family-chalkboard-panel>
+    <script src="../custom_components/family_chalkboard/frontend/family-chalkboard-panel.js"></script>
+    <script>
+      const subscribers = new Set();
+      let state = {
+        version: 1,
+        note: "Dinner at 18:00 - swimming bag by the door",
+        strokes: [
+          {
+            mode: "draw",
+            color: "#f29ab2",
+            width: 11,
+            points: [
+              { x: .22, y: .39 },
+              { x: .19, y: .35 },
+              { x: .15, y: .31 },
+              { x: .13, y: .26 },
+              { x: .14, y: .22 },
+              { x: .17, y: .19 },
+              { x: .21, y: .19 },
+              { x: .24, y: .22 },
+              { x: .26, y: .26 },
+              { x: .28, y: .22 },
+              { x: .31, y: .19 },
+              { x: .35, y: .19 },
+              { x: .38, y: .22 },
+              { x: .39, y: .26 },
+              { x: .37, y: .31 },
+              { x: .34, y: .35 },
+              { x: .30, y: .39 },
+              { x: .26, y: .43 },
+              { x: .22, y: .39 }
+            ]
+          },
+          {
+            mode: "draw",
+            color: "#82c7ef",
+            width: 10,
+            points: [
+              { x: .45, y: .36 },
+              { x: .57, y: .22 },
+              { x: .69, y: .36 },
+              { x: .69, y: .59 },
+              { x: .45, y: .59 },
+              { x: .45, y: .36 }
+            ]
+          },
+          {
+            mode: "draw",
+            color: "#82c7ef",
+            width: 10,
+            points: [
+              { x: .55, y: .59 },
+              { x: .55, y: .47 },
+              { x: .60, y: .47 },
+              { x: .60, y: .59 }
+            ]
+          },
+          {
+            mode: "draw",
+            color: "#f5cf68",
+            width: 10,
+            points: [
+              { x: .82, y: .27 },
+              { x: .80, y: .24 },
+              { x: .80, y: .20 },
+              { x: .82, y: .17 },
+              { x: .85, y: .16 },
+              { x: .88, y: .17 },
+              { x: .90, y: .20 },
+              { x: .90, y: .24 },
+              { x: .88, y: .27 },
+              { x: .85, y: .28 },
+              { x: .82, y: .27 }
+            ]
+          }
+        ]
+      };
+
+      const clone = (value) => JSON.parse(JSON.stringify(value));
+      const panel = document.querySelector("family-chalkboard-panel");
+      panel.hass = {
+        language: "en",
+        callWS: async (message) => {
+          if (message.type === "family_chalkboard/state/get") {
+            return clone(state);
+          }
+          if (message.type === "family_chalkboard/state/save") {
+            state = clone(message.state);
+            subscribers.forEach((subscriber) => subscriber(clone(state)));
+            return clone(state);
+          }
+          throw new Error(`Unknown command: ${message.type}`);
+        },
+        connection: {
+          subscribeMessage: async (callback, message) => {
+            if (message.type !== "family_chalkboard/state/subscribe") {
+              throw new Error(`Unknown subscription: ${message.type}`);
+            }
+            subscribers.add(callback);
+            return () => subscribers.delete(callback);
+          }
+        }
+      };
+    </script>
+  </body>
+</html>

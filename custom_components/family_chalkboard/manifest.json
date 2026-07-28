@@ -1,0 +1,14 @@
+{
+  "domain": "family_chalkboard",
+  "name": "Family Chalkboard",
+  "after_dependencies": ["panel_custom"],
+  "codeowners": ["@HjortCreations"],
+  "config_flow": true,
+  "dependencies": ["http", "websocket_api"],
+  "documentation": "https://github.com/HjortCreations/home-assistant-family-chalkboard",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/HjortCreations/home-assistant-family-chalkboard/issues",
+  "single_config_entry": true,
+  "version": "1.1.0"
+}

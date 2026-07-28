@@ -1,0 +1,14 @@
+{
+  "title": "Familjens griffeltavla",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfigurera Familjens griffeltavla",
+        "description": "Skapa en gemensam, touchvänlig griffeltavla och lägg till den i Home Assistants sidopanel."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Familjens griffeltavla är redan konfigurerad."
+    }
+  }
+}

@@ -1,11 +1,13 @@
 # Home Assistant Family Chalkboard
 
 [![CI](https://github.com/HjortCreations/home-assistant-family-chalkboard/actions/workflows/ci.yml/badge.svg)](https://github.com/HjortCreations/home-assistant-family-chalkboard/actions/workflows/ci.yml)
+[![Validate Home Assistant](https://github.com/HjortCreations/home-assistant-family-chalkboard/actions/workflows/validate.yml/badge.svg)](https://github.com/HjortCreations/home-assistant-family-chalkboard/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-gold.svg)](LICENSE)
 
 A touch-first family chalkboard for Home Assistant dashboards and wall-mounted
 kiosks. Draw with a finger or stylus, leave a short note, and keep everything
-saved on the server across reloads and restarts.
+saved across reloads and restarts. Install it through HACS as a native Home
+Assistant panel, or run the dependency-free standalone server.
 
 ![Family Chalkboard running in a portrait browser](docs/screenshot.png)
 
@@ -15,13 +17,12 @@ Home Assistant has excellent controls, calendars, and task lists, but a shared
 wall display sometimes needs something less structured: a quick handwritten
 message, a child's drawing, or a note that the whole household can see.
 
-Family Chalkboard is deliberately small:
+Family Chalkboard is deliberately focused:
 
 - no JavaScript framework;
-- no Python packages;
 - one shared board;
-- one atomic JSON state file;
-- suitable for a Raspberry Pi or another always-on home server.
+- Home Assistant-backed storage and authentication when installed with HACS;
+- a dependency-free standalone option for any small home server.
 
 ## Features
 
@@ -30,14 +31,60 @@ Family Chalkboard is deliberately small:
 - Eraser and undo
 - Shared family note
 - Clear confirmation to prevent accidental deletion
-- Automatic server-side saving
+- Automatic saving and live updates across open screens
 - Responsive portrait and landscape layouts
 - English and Swedish interface
-- Strict payload validation and configurable write allowlist
-- Health endpoint for containers and monitoring
+- HACS custom integration with a one-click config flow
+- Home Assistant authentication and protected `.storage` persistence
+- Strict payload validation
+- Optional standalone health endpoint and configurable write allowlist
 - Docker Compose and hardened systemd examples
 
-## Quick start with Docker Compose
+## Install with HACS
+
+Requirements:
+
+- Home Assistant 2025.1 or later
+- HACS
+
+[![Open your Home Assistant instance and add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=HjortCreations&repository=home-assistant-family-chalkboard&category=integration)
+
+Or add it manually:
+
+1. Open HACS.
+2. Open the three-dot menu and select **Custom repositories**.
+3. Add
+   `https://github.com/HjortCreations/home-assistant-family-chalkboard`
+   with the category **Integration**.
+4. Download **Family Chalkboard** and restart Home Assistant.
+5. Open **Settings → Devices & services → Add integration**.
+6. Search for **Family Chalkboard** and confirm the setup.
+
+The **Family Chalkboard** panel now appears in the sidebar. It uses Home
+Assistant's authenticated WebSocket connection and stores its shared state in
+Home Assistant. No separate port, container, dashboard resource, or YAML is
+needed.
+
+The panel follows the Home Assistant language. Add `?lang=en` or `?lang=sv` to
+its URL to override it.
+
+### Add a dashboard navigation button
+
+```yaml
+type: button
+name: Chalkboard
+icon: mdi:draw
+tap_action:
+  action: navigate
+  navigation_path: /family-chalkboard
+```
+
+## Standalone server
+
+The original standalone version remains available for people who do not use
+Home Assistant or HACS.
+
+### Docker Compose
 
 ```bash
 git clone https://github.com/HjortCreations/home-assistant-family-chalkboard.git
@@ -49,7 +96,7 @@ Open `http://YOUR_SERVER_IP:8765/`.
 
 Board data is stored in the Docker volume `chalkboard-data`.
 
-## Quick start with Python
+### Python
 
 Python 3.11 or later is recommended. No packages need to be installed.
 
@@ -62,7 +109,7 @@ python src/chalkboard_server.py
 The default address is `http://0.0.0.0:8765/`, and the state file is written to
 `./data/board.json`.
 
-## Install as a systemd service
+### systemd
 
 On Debian, Raspberry Pi OS, and similar distributions:
 
@@ -81,7 +128,7 @@ systemctl status family-chalkboard
 curl http://127.0.0.1:8765/health
 ```
 
-## Add it to Home Assistant
+### Embed the standalone server
 
 Add a Webpage card to a dashboard:
 
@@ -94,26 +141,15 @@ aspect_ratio: 165%
 Use `?lang=sv` for Swedish. Without a language parameter, the app follows the
 browser language.
 
-For a wall display, a dedicated panel or subview provides the most drawing
-space. A regular Home Assistant button can navigate to that view:
-
-```yaml
-type: button
-name: Chalkboard
-icon: mdi:draw
-tap_action:
-  action: navigate
-  navigation_path: /your-dashboard/chalkboard
-```
-
-### HTTPS note
+#### HTTPS note
 
 Browsers block an HTTP iframe inside an HTTPS Home Assistant page. If Home
 Assistant is served over HTTPS, expose Family Chalkboard through an HTTPS
 reverse proxy as well. A local kiosk that loads both services over HTTP does
-not have this mixed-content restriction.
+not have this mixed-content restriction. The HACS integration does not have
+this issue because it is served directly by Home Assistant.
 
-## Configuration
+### Standalone configuration
 
 Settings can be supplied as command-line flags or environment variables.
 
@@ -140,16 +176,21 @@ the board, which is necessary for a Home Assistant iframe.
 
 ## Backups
 
-Back up the single `board.json` file in your configured data directory. Docker
-Compose stores it in the `chalkboard-data` volume. Writes are validated,
-serialized, flushed, and atomically replaced to reduce the risk of partial
-state after a power loss.
+The HACS integration stores its state in Home Assistant's
+`.storage/family_chalkboard.board` file, which is included in normal Home
+Assistant configuration backups. Do not edit that file while Home Assistant is
+running.
+
+For standalone installations, back up the single `board.json` file in the
+configured data directory. Docker Compose stores it in the
+`chalkboard-data` volume.
 
 ## Security
 
-This project is designed for a trusted home network and has no built-in user
-accounts. Do not expose it directly to the public internet. For remote access,
-use an authenticated HTTPS reverse proxy or a trusted VPN.
+The HACS integration is available only to authenticated Home Assistant users.
+The standalone server is designed for a trusted home network and has no
+built-in user accounts. Do not expose the standalone port directly to the
+public internet.
 
 See [SECURITY.md](SECURITY.md) for the security model.
 
@@ -162,14 +203,16 @@ python -m unittest discover -s tests -v
 python scripts/check_frontend.py
 ```
 
-The project intentionally avoids runtime dependencies. Please keep changes
-focused and include screenshots for interface updates.
+The standalone project intentionally avoids runtime dependencies. Please keep
+changes focused and include screenshots for interface updates. HACS and
+Hassfest validation run automatically in GitHub Actions.
 
 ## Limitations
 
 - The board is shared and uses last-write-wins behavior.
-- It is not a HACS card or a Home Assistant add-on.
-- There is no built-in authentication or user history.
+- There is no user history or per-user board.
+- The HACS version is a full panel rather than a small dashboard card.
+- The standalone version has no built-in authentication.
 - Very large, long-lived drawings will eventually reach the configured state
   limits and should be cleared.
 

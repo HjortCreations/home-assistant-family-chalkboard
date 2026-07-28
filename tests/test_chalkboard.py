@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from http.client import HTTPConnection
 import json
-from pathlib import Path
 import sys
-from tempfile import TemporaryDirectory
 import threading
 import unittest
-
+from http.client import HTTPConnection
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from chalkboard_server import (  # noqa: E402
+from chalkboard_server import (
     DEFAULT_STATE,
     InvalidState,
     StateStore,
@@ -21,7 +20,6 @@ from chalkboard_server import (  # noqa: E402
     parse_networks,
     validate_state,
 )
-
 
 VALID_STATE = {
     "version": 1,
