@@ -4,30 +4,25 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
 import json
 import math
 import os
-from pathlib import Path
 import re
 import tempfile
 import threading
-from typing import Any, Iterable
+from collections.abc import Iterable
+from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from ipaddress import IPv4Network, IPv6Network, ip_address, ip_network
+from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
-
 
 VERSION = "1.0.0"
 APP_FILE = Path(__file__).with_name("index.html")
 DEFAULT_STATE = {"version": 1, "note": "", "strokes": []}
 DEFAULT_ALLOWED_NETWORKS = (
-    "127.0.0.0/8,"
-    "::1/128,"
-    "10.0.0.0/8,"
-    "172.16.0.0/12,"
-    "192.168.0.0/16,"
-    "fc00::/7"
+    "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
 )
 MAX_STATE_BYTES = 5 * 1024 * 1024
 MAX_NOTE_LENGTH = 1000
@@ -196,8 +191,7 @@ def client_allowed(address: str, networks: Iterable[Network]) -> bool:
     except ValueError:
         return False
     return any(
-        client.version == network.version and client in network
-        for network in networks
+        client.version == network.version and client in network for network in networks
     )
 
 

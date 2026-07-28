@@ -1,0 +1,14 @@
+{
+  "title": "Family Chalkboard",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Family Chalkboard",
+        "description": "Create a shared, touch-friendly chalkboard and add it to the Home Assistant sidebar."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Family Chalkboard is already configured."
+    }
+  }
+}
