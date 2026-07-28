@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import struct
 import unittest
 from pathlib import Path
 
@@ -84,12 +85,26 @@ class HacsLayoutTests(unittest.TestCase):
             "__init__.py",
             "config_flow.py",
             "manifest.json",
+            "brand/icon.png",
+            "brand/icon@2x.png",
             "translations/en.json",
             "translations/sv.json",
             "frontend/family-chalkboard-panel.js",
         ):
             with self.subTest(relative_path=relative_path):
                 self.assertTrue((integration / relative_path).is_file())
+
+    def test_brand_icons_have_home_assistant_dimensions(self) -> None:
+        brand = PROJECT_ROOT / "custom_components" / "family_chalkboard" / "brand"
+        for filename, expected_size in (
+            ("icon.png", 256),
+            ("icon@2x.png", 512),
+        ):
+            with self.subTest(filename=filename):
+                data = (brand / filename).read_bytes()
+                self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
+                width, height = struct.unpack(">II", data[16:24])
+                self.assertEqual((width, height), (expected_size, expected_size))
 
 
 if __name__ == "__main__":
