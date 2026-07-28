@@ -1,0 +1,24 @@
+[Unit]
+Description=Family Chalkboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=family-chalkboard
+WorkingDirectory=/opt/family-chalkboard
+Environment=CHALKBOARD_HOST=0.0.0.0
+Environment=CHALKBOARD_PORT=8765
+Environment=CHALKBOARD_DATA_DIR=/var/lib/family-chalkboard
+ExecStart=/usr/bin/python3 /opt/family-chalkboard/chalkboard_server.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/family-chalkboard
+
+[Install]
+WantedBy=multi-user.target

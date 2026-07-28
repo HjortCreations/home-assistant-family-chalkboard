@@ -1,0 +1,24 @@
+[project]
+name = "home-assistant-family-chalkboard"
+version = "1.0.0"
+description = "A touch-first shared chalkboard for Home Assistant dashboards."
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+  { name = "Per Hjort" },
+]
+keywords = [
+  "home-assistant",
+  "chalkboard",
+  "kiosk",
+  "raspberry-pi",
+  "touchscreen",
+]
+
+[project.urls]
+Homepage = "https://github.com/HjortCreations/home-assistant-family-chalkboard"
+Issues = "https://github.com/HjortCreations/home-assistant-family-chalkboard/issues"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
