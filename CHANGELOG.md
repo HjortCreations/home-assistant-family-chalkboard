@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 — Unreleased
+## 1.1.0 — 2026-07-28
 
 - HACS-compatible Home Assistant custom integration.
 - One-click config flow and automatically registered sidebar panel.
