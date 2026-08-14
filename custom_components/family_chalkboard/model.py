@@ -7,12 +7,19 @@ import math
 import re
 from typing import Any, Final
 
-DEFAULT_STATE: Final = {"version": 1, "note": "", "strokes": []}
+DEFAULT_STATE: Final = {
+    "version": 2,
+    "note": "",
+    "canvas": {"aspectRatio": None},
+    "strokes": [],
+}
 MAX_STATE_BYTES: Final = 5 * 1024 * 1024
 MAX_NOTE_LENGTH: Final = 1000
 MAX_STROKES: Final = 2500
 MAX_POINTS_PER_STROKE: Final = 10000
 MAX_TOTAL_POINTS: Final = 200000
+MIN_CANVAS_ASPECT_RATIO: Final = 0.1
+MAX_CANVAS_ASPECT_RATIO: Final = 10.0
 COLOR_PATTERN: Final = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
@@ -49,6 +56,16 @@ def validate_state(value: Any) -> dict[str, Any]:
         raise InvalidState("note must be a string")
     if len(note) > MAX_NOTE_LENGTH:
         raise InvalidState("note is too long")
+
+    canvas = value.get("canvas", {})
+    if not isinstance(canvas, dict):
+        raise InvalidState("canvas must be an object")
+    aspect_ratio_value = canvas.get("aspectRatio")
+    aspect_ratio: float | None = None
+    if aspect_ratio_value is not None:
+        aspect_ratio = _finite_number(aspect_ratio_value, "aspectRatio")
+        if not MIN_CANVAS_ASPECT_RATIO <= aspect_ratio <= MAX_CANVAS_ASPECT_RATIO:
+            raise InvalidState("canvas has an invalid aspect ratio")
 
     strokes = value.get("strokes", [])
     if not isinstance(strokes, list):
@@ -108,7 +125,8 @@ def validate_state(value: Any) -> dict[str, Any]:
         )
 
     return {
-        "version": 1,
+        "version": 2,
         "note": note,
+        "canvas": {"aspectRatio": aspect_ratio},
         "strokes": normalized_strokes,
     }

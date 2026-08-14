@@ -1,3 +1,7 @@
+const VIEW_MODE_STORAGE_KEY = "family-chalkboard:view-mode";
+const MIN_CANVAS_ASPECT_RATIO = 0.1;
+const MAX_CANVAS_ASPECT_RATIO = 10;
+
 const TRANSLATIONS = {
   en: {
     title: "Family Chalkboard",
@@ -15,6 +19,10 @@ const TRANSLATIONS = {
     eraser: "Eraser",
     undo: "Undo",
     undoLabel: "Undo the latest stroke",
+    viewFit: "Fit",
+    viewFill: "Fill",
+    viewFitLabel: "View mode: fit the drawing without distortion",
+    viewFillLabel: "View mode: fill the drawing area; proportions may change",
     clear: "Clear",
     empty: "Draw here with your finger ✦",
     canvasLabel: "Draw here with your finger",
@@ -51,6 +59,10 @@ const TRANSLATIONS = {
     eraser: "Sudd",
     undo: "Ångra",
     undoLabel: "Ångra senaste strecket",
+    viewFit: "Passa in",
+    viewFill: "Fyll ytan",
+    viewFitLabel: "Visning: passa in teckningen utan förvrängning",
+    viewFillLabel: "Visning: fyll ritytan; proportionerna kan ändras",
     clear: "Töm",
     empty: "Rita med fingret här ✦",
     canvasLabel: "Rita med fingret här",
@@ -110,7 +122,7 @@ const TEMPLATE = `
     .app {
       width: 100%;
       height: 100%;
-      min-height: 580px;
+      min-height: 0;
       display: grid;
       grid-template-rows: auto auto minmax(0, 1fr);
       gap: 14px;
@@ -324,6 +336,18 @@ const TEMPLATE = `
       min-height: 0;
       overflow: hidden;
       background:
+        radial-gradient(circle at 50% 50%, rgba(215, 164, 92, .055), transparent 68%),
+        #090c0b;
+    }
+
+    .drawing-surface {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      outline: 1px solid rgba(215, 164, 92, .12);
+      outline-offset: -1px;
+      border-radius: 16px;
+      background:
         radial-gradient(
           circle at 18% 20%,
           rgba(255, 255, 255, .026) 0 1px,
@@ -337,7 +361,9 @@ const TEMPLATE = `
         linear-gradient(120deg, rgba(255, 255, 255, .012), transparent 35%),
         #15211d;
       background-size: 31px 29px, 37px 41px, auto, auto;
-      box-shadow: inset 0 0 72px rgba(0, 0, 0, .42);
+      box-shadow:
+        0 12px 42px rgba(0, 0, 0, .34),
+        inset 0 0 72px rgba(0, 0, 0, .42);
     }
 
     canvas {
@@ -458,6 +484,46 @@ const TEMPLATE = `
         border-radius: 15px;
       }
     }
+
+    @media (max-height: 700px) {
+      .app {
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .topbar,
+      .note-card {
+        padding: 9px 12px;
+        border-radius: 18px;
+      }
+
+      .subtitle {
+        display: none;
+      }
+
+      .note-label {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+      }
+
+      textarea {
+        min-height: 44px;
+      }
+
+      .toolbar {
+        min-height: 58px;
+        padding: 5px 8px;
+      }
+
+      .tool-button,
+      .color-button,
+      .size-button {
+        min-width: 46px;
+        min-height: 46px;
+        border-radius: 14px;
+      }
+    }
   </style>
 
   <main class="app">
@@ -518,15 +584,20 @@ const TEMPLATE = `
         <button class="tool-button" id="undo-button" type="button" aria-label="Undo the latest stroke">
           Undo
         </button>
+        <button class="tool-button" id="view-mode-button" type="button" aria-pressed="true">
+          Fit
+        </button>
         <button class="tool-button danger" id="clear-button" type="button">
           Clear
         </button>
       </nav>
 
       <div class="canvas-wrap" id="canvas-wrap">
-        <canvas id="chalkboard" aria-label="Draw here with your finger"></canvas>
-        <div class="empty-hint" id="empty-hint">
-          Draw here with your finger ✦
+        <div class="drawing-surface" id="drawing-surface">
+          <canvas id="chalkboard" aria-label="Draw here with your finger"></canvas>
+          <div class="empty-hint" id="empty-hint">
+            Draw here with your finger ✦
+          </div>
         </div>
       </div>
     </section>
@@ -558,7 +629,12 @@ class FamilyChalkboardPanel extends HTMLElement {
     this._loaded = false;
     this._connectInFlight = false;
     this._unsubscribe = null;
-    this._board = { version: 1, note: "", strokes: [] };
+    this._board = {
+      version: 2,
+      note: "",
+      canvas: { aspectRatio: null },
+      strokes: [],
+    };
     this._currentStroke = null;
     this._mode = "draw";
     this._color = "#f3f1e8";
@@ -567,9 +643,11 @@ class FamilyChalkboardPanel extends HTMLElement {
     this._saveInFlight = false;
     this._saveAgain = false;
     this._language = "en";
+    this._viewMode = this._readViewMode();
 
     this._canvas = this.shadowRoot.getElementById("chalkboard");
     this._canvasWrap = this.shadowRoot.getElementById("canvas-wrap");
+    this._drawingSurface = this.shadowRoot.getElementById("drawing-surface");
     this._context = this._canvas.getContext("2d");
     this._note = this.shadowRoot.getElementById("family-note");
     this._status = this.shadowRoot.getElementById("save-status");
@@ -577,6 +655,7 @@ class FamilyChalkboardPanel extends HTMLElement {
     this._penTool = this.shadowRoot.getElementById("pen-tool");
     this._eraserTool = this.shadowRoot.getElementById("eraser-tool");
     this._undoButton = this.shadowRoot.getElementById("undo-button");
+    this._viewModeButton = this.shadowRoot.getElementById("view-mode-button");
     this._clearButton = this.shadowRoot.getElementById("clear-button");
     this._clearDialog = this.shadowRoot.getElementById("clear-dialog");
     this._cancelClear = this.shadowRoot.getElementById("cancel-clear");
@@ -597,6 +676,7 @@ class FamilyChalkboardPanel extends HTMLElement {
 
     this._bindEvents();
     this._applyTranslations();
+    this._updateViewModeButton();
     this._setStatus("loading");
   }
 
@@ -664,6 +744,7 @@ class FamilyChalkboardPanel extends HTMLElement {
     this._eraserTool.textContent = copy.eraser;
     this._undoButton.textContent = copy.undo;
     this._undoButton.setAttribute("aria-label", copy.undoLabel);
+    this._updateViewModeButton();
     this._clearButton.textContent = copy.clear;
     this._canvas.setAttribute("aria-label", copy.canvasLabel);
     this._emptyHint.textContent = copy.empty;
@@ -686,10 +767,90 @@ class FamilyChalkboardPanel extends HTMLElement {
   }
 
   _normalizeState(loaded) {
+    const candidateRatio = Number(loaded?.canvas?.aspectRatio);
+    const aspectRatio =
+      Number.isFinite(candidateRatio) &&
+      candidateRatio >= MIN_CANVAS_ASPECT_RATIO &&
+      candidateRatio <= MAX_CANVAS_ASPECT_RATIO
+        ? candidateRatio
+        : null;
     return {
-      version: 1,
+      version: 2,
       note: typeof loaded?.note === "string" ? loaded.note : "",
+      canvas: { aspectRatio },
       strokes: Array.isArray(loaded?.strokes) ? loaded.strokes : [],
+    };
+  }
+
+  _readViewMode() {
+    try {
+      return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === "fill"
+        ? "fill"
+        : "fit";
+    } catch (_error) {
+      return "fit";
+    }
+  }
+
+  _updateViewModeButton() {
+    if (!this._viewModeButton || !this._copy) return;
+    const isFit = this._viewMode === "fit";
+    this._viewModeButton.textContent = isFit
+      ? this._copy.viewFit
+      : this._copy.viewFill;
+    this._viewModeButton.setAttribute("aria-pressed", String(isFit));
+    const label = isFit ? this._copy.viewFitLabel : this._copy.viewFillLabel;
+    this._viewModeButton.setAttribute("aria-label", label);
+    this._viewModeButton.setAttribute("title", label);
+  }
+
+  _setViewMode(mode) {
+    this._viewMode = mode === "fill" ? "fill" : "fit";
+    try {
+      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, this._viewMode);
+    } catch (_error) {
+      // The preference remains active for this browser session.
+    }
+    this._updateViewModeButton();
+    this._redraw();
+  }
+
+  _layoutDrawingSurface() {
+    const rect = this._canvasWrap.getBoundingClientRect();
+    let width = rect.width;
+    let height = rect.height;
+    let left = 0;
+    let top = 0;
+    const aspectRatio = this._board.canvas?.aspectRatio;
+
+    if (
+      this._viewMode === "fit" &&
+      Number.isFinite(aspectRatio) &&
+      aspectRatio > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    ) {
+      if (rect.width / rect.height > aspectRatio) {
+        width = rect.height * aspectRatio;
+        left = (rect.width - width) / 2;
+      } else {
+        height = rect.width / aspectRatio;
+        top = (rect.height - height) / 2;
+      }
+    }
+
+    this._drawingSurface.style.left = `${left}px`;
+    this._drawingSurface.style.top = `${top}px`;
+    this._drawingSurface.style.width = `${Math.max(0, width)}px`;
+    this._drawingSurface.style.height = `${Math.max(0, height)}px`;
+  }
+
+  _lockCanvasAspectRatio() {
+    if (this._board.canvas?.aspectRatio) return;
+    const rect = this._canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    this._board.canvas = {
+      aspectRatio: Math.round((rect.width / rect.height) * 10000) / 10000,
     };
   }
 
@@ -795,6 +956,7 @@ class FamilyChalkboardPanel extends HTMLElement {
   }
 
   _redraw() {
+    this._layoutDrawingSurface();
     const rect = this._canvas.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(rect.width * dpr));
@@ -864,6 +1026,7 @@ class FamilyChalkboardPanel extends HTMLElement {
   _beginStroke(event) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
+    this._lockCanvasAspectRatio();
     this._canvas.setPointerCapture(event.pointerId);
     this._currentStroke = {
       mode: this._mode,
@@ -946,6 +1109,10 @@ class FamilyChalkboardPanel extends HTMLElement {
       this._scheduleSave();
     });
 
+    this._viewModeButton.addEventListener("click", () => {
+      this._setViewMode(this._viewMode === "fit" ? "fill" : "fit");
+    });
+
     this._clearButton.addEventListener("click", () => {
       this._clearDialog.showModal();
     });
@@ -954,6 +1121,7 @@ class FamilyChalkboardPanel extends HTMLElement {
     });
     this._confirmClear.addEventListener("click", () => {
       this._board.note = "";
+      this._board.canvas = { aspectRatio: null };
       this._board.strokes = [];
       this._note.value = "";
       this._redraw();

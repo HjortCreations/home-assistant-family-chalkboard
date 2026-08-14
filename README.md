@@ -32,6 +32,8 @@ Family Chalkboard is deliberately focused:
 - Shared family note
 - Clear confirmation to prevent accidental deletion
 - Automatic saving and live updates across open screens
+- Automatic board sizing for portrait, landscape, and smaller screens
+- Proportion-preserving viewing with an optional full-area mode per browser
 - Responsive portrait and landscape layouts
 - English and Swedish interface
 - HACS custom integration with a one-click config flow
@@ -67,6 +69,23 @@ needed.
 
 The panel follows the Home Assistant language. Add `?lang=en` or `?lang=sv` to
 its URL to override it.
+
+### Screen sizes and orientation
+
+Family Chalkboard measures the space actually available to the drawing area,
+not the device's advertised screen resolution. This accounts for browser UI,
+Home Assistant sidebars, and dashboard headers automatically.
+
+The first stroke on a new board records that drawing area's aspect ratio. The
+default **Fit** mode then preserves the drawing's proportions on other portrait
+or landscape screens and centers it in the largest possible area. Use the
+**Fill** button to fill the entire drawing area when that is more important than
+preserving the exact proportions. This viewing preference is stored only in
+the current browser, so one display can use **Fit** while another uses **Fill**.
+
+Clearing the board also clears its recorded format. The next stroke adopts the
+current drawing area's format. Boards saved by version 1 remain readable and
+keep their previous behavior until a new format is established.
 
 ### Add a dashboard navigation button
 
