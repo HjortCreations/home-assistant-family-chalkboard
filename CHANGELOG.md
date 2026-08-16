@@ -6,6 +6,7 @@
 - Proportion-preserving **Fit** mode across portrait and landscape screens.
 - Optional per-browser **Fill** mode for people who prefer to use the entire area.
 - Full-height layouts on short and non-kiosk screens without page scrolling.
+- A compact 50/50 header and family-note row on wide landscape screens.
 - Backward-compatible migration of version 1 board data.
 
 ## 1.1.0 — 2026-07-28

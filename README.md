@@ -76,6 +76,10 @@ Family Chalkboard measures the space actually available to the drawing area,
 not the device's advertised screen resolution. This accounts for browser UI,
 Home Assistant sidebars, and dashboard headers automatically.
 
+On wide landscape screens, the title/status card and family-note card share
+one compact 50/50 row. They remain stacked at full width in portrait mode so
+the note field and save status stay comfortable to read and touch.
+
 The first stroke on a new board records that drawing area's aspect ratio. The
 default **Fit** mode then preserves the drawing's proportions on other portrait
 or landscape screens and centers it in the largest possible area. Use the
