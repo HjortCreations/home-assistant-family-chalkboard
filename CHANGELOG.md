@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 — Unreleased
+## 1.2.0 — 2026-08-16
 
 - Responsive board format that is detected from the available drawing area.
 - Proportion-preserving **Fit** mode across portrait and landscape screens.
