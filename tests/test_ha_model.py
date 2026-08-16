@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import struct
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -14,8 +15,9 @@ model = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(model)
 
 VALID_STATE = {
-    "version": 1,
+    "version": 2,
     "note": "Swimming bag by the door",
+    "canvas": {"aspectRatio": 1.6},
     "strokes": [
         {
             "mode": "draw",
@@ -33,9 +35,22 @@ VALID_STATE = {
 class HomeAssistantModelTests(unittest.TestCase):
     def test_valid_state_is_normalized(self) -> None:
         normalized = model.validate_state(VALID_STATE)
-        self.assertEqual(normalized["version"], 1)
+        self.assertEqual(normalized["version"], 2)
+        self.assertEqual(normalized["canvas"]["aspectRatio"], 1.6)
         self.assertEqual(normalized["strokes"][0]["color"], "#f29ab2")
         self.assertEqual(normalized["strokes"][0]["width"], 8.0)
+
+    def test_legacy_state_is_migrated_without_guessing_format(self) -> None:
+        legacy = {"version": 1, "note": "Legacy", "strokes": []}
+        normalized = model.validate_state(legacy)
+        self.assertEqual(normalized["version"], 2)
+        self.assertIsNone(normalized["canvas"]["aspectRatio"])
+
+    def test_rejects_invalid_canvas_aspect_ratio(self) -> None:
+        invalid = json.loads(json.dumps(VALID_STATE))
+        invalid["canvas"]["aspectRatio"] = 0.05
+        with self.assertRaises(model.InvalidState):
+            model.validate_state(invalid)
 
     def test_rejects_non_json_value(self) -> None:
         invalid = dict(VALID_STATE)
@@ -72,12 +87,16 @@ class HacsLayoutTests(unittest.TestCase):
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
+        project = tomllib.loads(
+            (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        )
 
         self.assertEqual(hacs["name"], "Family Chalkboard")
         self.assertEqual(manifest["domain"], "family_chalkboard")
         self.assertTrue(manifest["config_flow"])
         self.assertTrue(manifest["single_config_entry"])
         self.assertRegex(manifest["version"], r"^\d+\.\d+\.\d+$")
+        self.assertEqual(manifest["version"], project["project"]["version"])
 
     def test_required_runtime_files_are_inside_integration(self) -> None:
         integration = PROJECT_ROOT / "custom_components" / "family_chalkboard"

@@ -22,8 +22,9 @@ from chalkboard_server import (
 )
 
 VALID_STATE = {
-    "version": 1,
+    "version": 2,
     "note": "Milk is in the fridge",
+    "canvas": {"aspectRatio": 0.625},
     "strokes": [
         {
             "mode": "draw",
@@ -41,9 +42,22 @@ VALID_STATE = {
 class ValidationTests(unittest.TestCase):
     def test_valid_state_is_normalized(self) -> None:
         normalized = validate_state(VALID_STATE)
-        self.assertEqual(normalized["version"], 1)
+        self.assertEqual(normalized["version"], 2)
+        self.assertEqual(normalized["canvas"]["aspectRatio"], 0.625)
         self.assertEqual(normalized["strokes"][0]["color"], "#f3f1e8")
         self.assertEqual(normalized["strokes"][0]["width"], 8.0)
+
+    def test_legacy_state_is_migrated_without_guessing_format(self) -> None:
+        legacy = {"version": 1, "note": "Legacy", "strokes": []}
+        normalized = validate_state(legacy)
+        self.assertEqual(normalized["version"], 2)
+        self.assertIsNone(normalized["canvas"]["aspectRatio"])
+
+    def test_rejects_invalid_canvas_aspect_ratio(self) -> None:
+        invalid = json.loads(json.dumps(VALID_STATE))
+        invalid["canvas"]["aspectRatio"] = 20
+        with self.assertRaises(InvalidState):
+            validate_state(invalid)
 
     def test_rejects_long_note(self) -> None:
         with self.assertRaises(InvalidState):

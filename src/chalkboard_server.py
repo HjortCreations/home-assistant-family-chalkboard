@@ -18,9 +18,14 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 APP_FILE = Path(__file__).with_name("index.html")
-DEFAULT_STATE = {"version": 1, "note": "", "strokes": []}
+DEFAULT_STATE = {
+    "version": 2,
+    "note": "",
+    "canvas": {"aspectRatio": None},
+    "strokes": [],
+}
 DEFAULT_ALLOWED_NETWORKS = (
     "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
 )
@@ -29,6 +34,8 @@ MAX_NOTE_LENGTH = 1000
 MAX_STROKES = 2500
 MAX_POINTS_PER_STROKE = 10000
 MAX_TOTAL_POINTS = 200000
+MIN_CANVAS_ASPECT_RATIO = 0.1
+MAX_CANVAS_ASPECT_RATIO = 10.0
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 Network = IPv4Network | IPv6Network
 
@@ -56,6 +63,16 @@ def validate_state(value: Any) -> dict[str, Any]:
         raise InvalidState("note must be a string")
     if len(note) > MAX_NOTE_LENGTH:
         raise InvalidState("note is too long")
+
+    canvas = value.get("canvas", {})
+    if not isinstance(canvas, dict):
+        raise InvalidState("canvas must be an object")
+    aspect_ratio_value = canvas.get("aspectRatio")
+    aspect_ratio: float | None = None
+    if aspect_ratio_value is not None:
+        aspect_ratio = _finite_number(aspect_ratio_value, "aspectRatio")
+        if not MIN_CANVAS_ASPECT_RATIO <= aspect_ratio <= MAX_CANVAS_ASPECT_RATIO:
+            raise InvalidState("canvas has an invalid aspect ratio")
 
     strokes = value.get("strokes", [])
     if not isinstance(strokes, list):
@@ -115,8 +132,9 @@ def validate_state(value: Any) -> dict[str, Any]:
         )
 
     return {
-        "version": 1,
+        "version": 2,
         "note": note,
+        "canvas": {"aspectRatio": aspect_ratio},
         "strokes": normalized_strokes,
     }
 
