@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0b2 — 2026-08-17
+
+- Validate that opted-in HACS installations discover and apply a newer
+  prerelease through the normal update path.
+
 ## 1.3.0b1 — 2026-08-17
 
 - Establish the opt-in prerelease channel used for testing the exact HACS
