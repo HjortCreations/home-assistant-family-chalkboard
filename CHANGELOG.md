@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0b1 — 2026-08-17
+
+- Establish the opt-in prerelease channel used for testing the exact HACS
+  installation and update path before changes are promoted to a stable release.
+
 ## 1.2.1 — 2026-08-17
 
 - Keep the drawing area visible when Home Assistant does not give the custom

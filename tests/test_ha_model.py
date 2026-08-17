@@ -95,7 +95,7 @@ class HacsLayoutTests(unittest.TestCase):
         self.assertEqual(manifest["domain"], "family_chalkboard")
         self.assertTrue(manifest["config_flow"])
         self.assertTrue(manifest["single_config_entry"])
-        self.assertRegex(manifest["version"], r"^\d+\.\d+\.\d+$")
+        self.assertRegex(manifest["version"], r"^\d+\.\d+\.\d+(?:b\d+)?$")
         self.assertEqual(manifest["version"], project["project"]["version"])
 
     def test_required_runtime_files_are_inside_integration(self) -> None:
