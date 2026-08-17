@@ -91,7 +91,8 @@ const TEMPLATE = `
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 0;
+      min-height: 100vh;
+      min-height: var(--family-chalkboard-viewport-height, 100dvh);
       overflow: hidden;
       color-scheme: dark;
       font-family:
@@ -122,7 +123,8 @@ const TEMPLATE = `
     .app {
       width: 100%;
       height: 100%;
-      min-height: 0;
+      min-height: 100vh;
+      min-height: var(--family-chalkboard-viewport-height, 100dvh);
       display: grid;
       grid-template-rows: auto auto minmax(0, 1fr);
       gap: 14px;
@@ -684,6 +686,12 @@ class FamilyChalkboardPanel extends HTMLElement {
     ];
 
     this._resizeObserver = new ResizeObserver(() => this._redraw());
+    this._viewportFrame = null;
+    this._handleViewportResize = () => {
+      this._updateViewportHeight();
+      window.cancelAnimationFrame(this._viewportFrame);
+      this._viewportFrame = window.requestAnimationFrame(() => this._redraw());
+    };
     this._handleVisibility = () => {
       if (document.visibilityState === "hidden" && this._saveTimer) {
         this._saveBoard();
@@ -716,14 +724,27 @@ class FamilyChalkboardPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    this._updateViewportHeight();
     this._resizeObserver.observe(this._canvasWrap);
+    window.addEventListener("resize", this._handleViewportResize);
+    window.visualViewport?.addEventListener("resize", this._handleViewportResize);
     document.addEventListener("visibilitychange", this._handleVisibility);
+    this._viewportFrame = window.requestAnimationFrame(() => {
+      this._updateViewportHeight();
+      this._redraw();
+    });
     this._connect();
   }
 
   disconnectedCallback() {
     this._resizeObserver.disconnect();
+    window.removeEventListener("resize", this._handleViewportResize);
+    window.visualViewport?.removeEventListener(
+      "resize",
+      this._handleViewportResize,
+    );
     document.removeEventListener("visibilitychange", this._handleVisibility);
+    window.cancelAnimationFrame(this._viewportFrame);
     window.clearTimeout(this._saveTimer);
     if (this._unsubscribe) {
       this._unsubscribe();
@@ -780,6 +801,15 @@ class FamilyChalkboardPanel extends HTMLElement {
   _setStatus(key, state = "ok") {
     this._status.textContent = this._copy[key] || key;
     this._status.dataset.state = state;
+  }
+
+  _updateViewportHeight() {
+    const top = Math.max(0, this.getBoundingClientRect().top);
+    const availableHeight = Math.max(320, window.innerHeight - top);
+    this.style.setProperty(
+      "--family-chalkboard-viewport-height",
+      `${availableHeight}px`,
+    );
   }
 
   _normalizeState(loaded) {
