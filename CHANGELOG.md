@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — 2026-08-17
+
+- Keep the drawing area visible when Home Assistant does not give the custom
+  panel an explicit height.
+- Size the panel to the remaining viewport below Home Assistant's header.
+
 ## 1.2.0 — 2026-08-16
 
 - Responsive board format that is detected from the available drawing area.

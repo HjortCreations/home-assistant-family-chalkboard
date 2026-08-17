@@ -13,7 +13,26 @@
         margin: 0;
         overflow: hidden;
       }
+
+      html.unconstrained,
+      html.unconstrained body,
+      html.unconstrained family-chalkboard-panel {
+        height: auto;
+      }
+
+      html.panel-offset body {
+        padding-top: 56px;
+      }
     </style>
+    <script>
+      const parameters = new URLSearchParams(location.search);
+      if (parameters.has("unconstrained")) {
+        document.documentElement.classList.add("unconstrained");
+      }
+      if (parameters.has("offset")) {
+        document.documentElement.classList.add("panel-offset");
+      }
+    </script>
   </head>
   <body>
     <family-chalkboard-panel></family-chalkboard-panel>
